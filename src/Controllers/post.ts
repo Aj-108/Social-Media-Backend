@@ -79,3 +79,84 @@ export const updateLikes : RequestHandler =async (req,res,next) => {
         next(err) ;
     }
 }
+
+export const updateCaption :RequestHandler = async (req,res,next) => {
+    try{
+        const {caption} = req.body ;
+
+        const post:any = await Post.findById(req.params.id) ;
+
+        if(!post) {
+            res.status(404).json({ok:false,message:"Post not found"}) ;
+        }
+
+        if(post?.owner.toString() !== req.userId?.toString())  res.status(400).json({ok:false,message:"Cannot change post of other user"}) ;
+
+        post.caption = caption ;
+        await post.save() ;
+        res.status(200).json({ok:true,message:"Caption Updated"}) ;
+
+    }
+    catch(err) {
+        next(err) ;
+    }
+} 
+
+
+export const getPost :RequestHandler = async (req,res,next) => {
+    try{
+        const post:any = await Post.findById(req.params.id) ;
+
+        if(!post) {
+            res.status(404).json({ok:false,message:"Post not found"}) ;
+        }
+
+        res.status(200).json({ok:true,post}) ;
+
+    }
+    catch(err) {
+        next(err) ;
+    }
+} 
+
+export const uploadComment :RequestHandler = async (req,res,next) => {
+    try{
+        const post:any = await Post.findById(req.params.id) ;
+
+        if(!post) {
+            res.status(404).json({ok:false,message:"Post not found"}) ;
+        }
+
+        const {comment} = req.body ;
+
+        const commentData = {
+            user : req.userId ,
+            comment : comment 
+        }
+
+        // let isExist = ;
+
+        // if(){
+
+        // }else{
+            post.comments.push(commentData) ;
+            await post.save() ;
+        // }
+
+
+        res.status(200).json({ok:true,message:"Commented",commentData}) ;
+
+    }
+    catch(err) {
+        next(err) ;
+    }
+} 
+
+export const deleteComment : RequestHandler = async (req,res,next) => {
+    try{
+
+    }
+    catch(err){
+        next(err) ;
+    }
+}

@@ -86,9 +86,6 @@ export const unfollow : RequestHandler = async (req,res,next) => {
 
         if(!unfollowUser?.followers.includes(loggedUser?._id)) res.status(400).json({ok:false,message:"Not following user already"}) ;
 
-        // loggedUser?.following.push(unfollowUser?._id) ;
-        // unfollowUser?.followers.push(loggedUser?._id) ;
-
         const indexFollowing : any = loggedUser?.following.indexOf(unfollowUser?._id) ;
         const indexFollower :any  = unfollowUser?.followers.indexOf(loggedUser?._id) ;
 
@@ -120,3 +117,142 @@ export const getFollowersPost : RequestHandler = async (req,res,next) => {
         next(err) ;
     }
 }
+
+export const logout : RequestHandler = async (req,res,next) => {
+    try{
+        res.clearCookie('authToken') ;
+        res.clearCookie('refreshToken') ;
+        
+        return res.status(200).json({ok:true,message:"User has been logged out"}) ;
+    }
+    catch(err){
+        next(err) ;
+    }
+} 
+
+export const updatePassword : RequestHandler = async (req,res,next) => {
+    try {
+        const {password,new_password} = req.body ;
+
+        if(!password || !new_password) return res.status(400).json({ok:false,message:"Please provide password"}) ;
+
+        if(req.userId != req.params.id) return res.status(400).json({ok:false,message:"Cannot change details of other users"}) ;
+
+        const user:any = await User.findById(req.userId).select("+password") ;
+
+        const comparePassword = await bcrypt.compare(password,user?.password) ;
+        if(!comparePassword){
+            return res.status(400).json({ok:false,message:"Invalid Credentials"}); 
+        }
+
+        const salt = bcrypt.genSaltSync(10);
+        const hashedpassword =  bcrypt.hashSync(new_password, salt);
+
+        user.password = hashedpassword ;
+        await user.save() ;
+
+        res.status(201).json({ok:true,messsage:"Password updated Successfully"}) ;
+
+    }
+    catch(err){
+        next(err) ;
+    }
+}
+
+export const updateUser  :RequestHandler = async (req,res,next) => {
+    try{
+        // TODO AVATAR
+        const {name} = req.body ;
+        if(req.userId != req.params.id) return res.status(400).json({ok:false,message:"Cannot change details of other users"}) ;
+        if(!name) return res.status(400).json({ok:false,message:"Please provide user details"}) ;
+
+        const user:any =await  User.findById(req.userId) ;
+
+        if(name) user.username = name  ;
+        await user.save() ;
+
+        res.status(200).json({ok:true,message:"Profile Updated Successfully"})
+
+    }
+    catch(err){
+        next(err) ;
+    } 
+}
+
+export const deleteUser : RequestHandler = async(req,res,next) => {
+    try{
+        if(req.userId !== req.params.id) return res.status(400).json({ok:false,message:"Cannot delete other users"}) ;
+
+        const user:any =await  User.findById(req.userId) ;
+
+        const userPosts = user?.user_posts ;     
+        const userFollwing = user?.following ;    
+
+        // delete user posts 
+        userPosts.forEach(async (post:any) => {
+            console.log(post);
+            await Post?.findByIdAndDelete(post) ;
+        });
+
+
+        // removing user following from followers
+        userFollwing.forEach(async (userFollowers:any) => {
+            const following:any = await User.findById(userFollowers) ;
+            const index = following.followers.indexOf(user._id) ;
+            const indexFollowing = following.following.indexOf(user._id) ;
+            following?.followers.splice(index,1) ;
+            following?.following.splice(index,1) ;
+
+            await following.save() ;
+        })
+
+
+        await User.findByIdAndDelete(req.userId) ;
+
+        // Logging out user after deleteing id 
+        res.clearCookie('authToken') ;
+        res.clearCookie('refreshToken') ;
+
+        res.status(200).json({ok:true,message:"User deleted"})
+
+
+    }
+    catch(err){
+        next(err) ;
+    }
+}
+
+
+export const getMyProfile : RequestHandler = async (req,res,next) => {
+    try{
+        const user = await User.findById(req.userId) ;
+        res.status(200).json({ok:true,user}) ;
+    }
+    catch(err){
+        next(err) ;
+    }
+}
+
+export const getUserProfile : RequestHandler = async (req,res,next) => {
+    try{
+        const user = await User.findById(req.params.id) ;
+        if(!user) res.status(400).json({ok:false,message:"User profile not found"}) ;
+        res.status(200).json({ok:true,user}) ;
+    }
+    catch(err){
+        next(err) ;
+    }
+}
+
+
+export const getAllUsers : RequestHandler = async (req,res,next) => {
+    try{
+        const user = await User.find() ;
+        res.status(200).json({ok:true,user}) ;
+    }
+    catch(err){
+        next(err) ;
+    }
+}
+
+

@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const errorMiddleware_1 = require("../Middleware/errorMiddleware");
+const authMiddleware_1 = require("../Middleware/authMiddleware");
+const post_1 = require("../Controllers/post");
+const router = (0, express_1.Router)();
+router.post('/upload/:id', authMiddleware_1.checkAuth, post_1.uploadPost);
+router.get('/like/:id', authMiddleware_1.checkAuth, post_1.updateLikes);
+router.delete('/delete/:id', authMiddleware_1.checkAuth, post_1.deletePost);
+router.put('/update/:id', authMiddleware_1.checkAuth, post_1.updateCaption);
+router.use(errorMiddleware_1.errorHandler);
+exports.default = router;
